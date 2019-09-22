@@ -7,16 +7,16 @@ import (
 )
 
 type Editor struct {
-	buffer []rune
+	buffer []byte
 }
 
 func (e *Editor) ListenForInputs(inp io.Reader) {
 	reader := bufio.NewReader(inp)
 
-	r, _, err := reader.ReadRune()
+	b, err := reader.ReadByte()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	e.buffer = append(e.buffer, r)
+	e.buffer = append(e.buffer, b)
 }

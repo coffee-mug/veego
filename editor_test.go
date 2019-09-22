@@ -8,8 +8,18 @@ type mockStdin struct {
 	buffer []byte
 }
 
-func (s *mockStdin) Read(p []byte) (n int, err error) {
+func (s mockStdin) Read(p []byte) (n int, err error) {
+	for _, b := range s.buffer {
+		p = append(p, b)
+	}
 
+	return len(s.buffer), nil
+}
+
+func (s mockStdin) Write(p []byte) (n int, err error) {
+	for _, b := range p {
+		s.buffer = append(s.buffer, b)
+	}
 }
 
 func TestEditor(t *testing.T) {
@@ -17,7 +27,9 @@ func TestEditor(t *testing.T) {
 		var editor Editor
 		character := 'a'
 
-		editor.ListenForInputs()
+		stdin := mockStdin{[]byte{}}
+
+		editor.ListenForInputs(stdin)
 
 		got := editor.buffer
 
