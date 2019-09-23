@@ -1,44 +1,79 @@
 package editor
 
 import (
+	"io"
+	"log"
 	"testing"
 )
 
 type mockStdin struct {
-	buffer []byte
+	s []byte
+	i int64
 }
 
-func (s mockStdin) Read(p []byte) (n int, err error) {
-	for _, b := range s.buffer {
-		p = append(p, b)
+func (m *mockStdin) Read(p []byte) (n int, err error) {
+	if m.i >= int64(len(m.s)) {
+		return 0, io.EOF
 	}
 
-	return len(s.buffer), nil
+	n = copy(p, m.s[m.i:])
+	m.i += int64(n)
+
+	return
 }
 
-func (s mockStdin) Write(p []byte) (n int, err error) {
-	for _, b := range p {
-		s.buffer = append(s.buffer, b)
+func (m *mockStdin) Write(p []byte) (n int, err error) {
+	for _, letter := range p {
+		m.s = append(m.s, letter)
+		n++
 	}
-
-	return len(p), nil
+	return
 }
 
 func TestEditor(t *testing.T) {
-	t.Run("Typing a character displays it on screen", func(t *testing.T) {
-		var editor Editor
-		character := "a"
+	t.Run("mockStdin implements Reader interface", func(t *testing.T) {
+		greeting := "Hello World !"
 
-		stdin := mockStdin{[]byte{}}
+		stdin := mockStdin{[]byte(greeting), 0}
+		buf := make([]byte, len(greeting))
+		n, err := stdin.Read(buf)
 
-		editor.ListenForInputs(stdin)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-		stdin.Write([]byte("a"))
+		got := string(buf)
 
-		got := editor.buffer
+		if got != greeting {
+			t.Errorf("Got %s Expected %s", got, greeting)
+		}
 
-		if string(got) != character {
-			t.Errorf("Got %v Want %v", got, character)
+		if n != len(greeting) {
+			t.Errorf("Wrong number of chars read, Got %d Expected %d", n, len(greeting))
+		}
+	})
+
+	t.Run("mockStdin implements Writer interface", func(t *testing.T) {
+		greeting := "Hello"
+		guy := "Lucas"
+
+		stdin := mockStdin{[]byte(greeting), 0}
+		buf := []byte(guy)
+		n, err := stdin.Write(buf)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		got := string(stdin.s)
+		expect := greeting + guy
+
+		if got != expect {
+			t.Errorf("Got %s Expected %s", got, expect)
+		}
+
+		if n != len(guy) {
+			t.Errorf("Wrong number of chars read, Got %d Expected %d", n, len(guy))
 		}
 	})
 }
